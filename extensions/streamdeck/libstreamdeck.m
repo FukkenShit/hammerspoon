@@ -312,6 +312,26 @@ static int streamdeck_imageSize(lua_State *L) {
     return 1;
 }
 
+/// hs.streamdeck:imageSizeFullScreen()
+/// Method
+/// Gets the width and height of the whole physical screen lying under buttons (treating all the buttons as a single big screen).
+///
+/// Parameters:
+///  * None
+///
+/// Returns:
+///  * An table with keys `w` and `h` containing the width and height, respectively, of images expected by the Stream Deck
+static int streamdeck_imageSizeFullScreen(lua_State *L) {
+    LuaSkin *skin = [LuaSkin sharedWithState:L];
+    [skin checkArgs:LS_TUSERDATA, USERDATA_TAG, LS_TBREAK];
+
+    HSStreamDeckDevice *device = [skin luaObjectAtIndex:1 toClass:"HSStreamDeckDevice"];
+
+    NSSize size = NSMakeSize(device.imageWidthFullScreen, device.imageHeightFullScreen);
+    [skin pushNSSize:size];
+    return 1;
+}
+
 /// hs.streamdeck:setButtonImage(button, image)
 /// Method
 /// Sets the image of a button on the Stream Deck device
@@ -329,6 +349,30 @@ static int streamdeck_setButtonImage(lua_State *L) {
     HSStreamDeckDevice *device = [skin luaObjectAtIndex:1 toClass:"HSStreamDeckDevice"];
 
     [device setImage:[skin luaObjectAtIndex:3 toClass:"NSImage"] forButton:(int)lua_tointeger(skin.L, 2)];
+
+    lua_pushvalue(skin.L, 1);
+    return 1;
+}
+
+/// hs.streamdeck:setFullScreenImage(image)
+/// Method
+/// Sets the image of a physical screen lying under buttons on the Stream Deck device (treating all the buttons as a single big screen).
+///
+/// Parameters:
+///  * image - An hs.image object
+///
+/// Returns:
+///  * The hs.streamdeck object
+///
+///  Notes:
+///  * Images are always stretched to fill the entire screen without preserving the aspect ratio. To apply different scaling consider using [hs.canvas](hs.canvas.html) and/or [hs.image:size()](hs.image.html#size).
+static int streamdeck_setFullScreenImage(lua_State *L) {
+    LuaSkin *skin = [LuaSkin sharedWithState:L];
+    [skin checkArgs:LS_TUSERDATA, USERDATA_TAG, LS_TUSERDATA, "hs.image", LS_TBREAK];
+
+    HSStreamDeckDevice *device = [skin luaObjectAtIndex:1 toClass:"HSStreamDeckDevice"];
+
+    [device setImageFullScreen:[skin luaObjectAtIndex:2 toClass:"NSImage"]];
 
     lua_pushvalue(skin.L, 1);
     return 1;
@@ -373,6 +417,27 @@ static int streamdeck_setButtonColor(lua_State *L) {
     HSStreamDeckDevice *device = [skin luaObjectAtIndex:1 toClass:"HSStreamDeckDevice"];
 
     [device setColor:[skin luaObjectAtIndex:3 toClass:"NSColor"] forButton:(int)lua_tointeger(skin.L, 2)];
+
+    lua_pushvalue(skin.L, 1);
+    return 1;
+}
+
+/// hs.streamdeck:setFullScreenColor(color)
+/// Method
+/// Sets the whole physical screen on the Stream Deck device to the specified color (treating all the buttons as a single big screen).
+///
+/// Parameters:
+///  * color - An hs.drawing.color object
+///
+/// Returns:
+///  * The hs.streamdeck object
+static int streamdeck_setFullScreenColor(lua_State *L) {
+    LuaSkin *skin = [LuaSkin sharedWithState:L];
+    [skin checkArgs:LS_TUSERDATA, USERDATA_TAG, LS_TTABLE, LS_TBREAK];
+
+    HSStreamDeckDevice *device = [skin luaObjectAtIndex:1 toClass:"HSStreamDeckDevice"];
+
+    [device setColorFullScreen:[skin luaObjectAtIndex:2 toClass:"NSColor"]];
 
     lua_pushvalue(skin.L, 1);
     return 1;
@@ -453,14 +518,17 @@ static const luaL_Reg userdata_metaLib[] = {
     {"firmwareVersion",     streamdeck_firmwareVersion},
     {"buttonLayout",        streamdeck_buttonLayout},
     {"imageSize",           streamdeck_imageSize},
+    {"imageSizeFullScreen", streamdeck_imageSizeFullScreen},
     
     {"buttonCallback",      streamdeck_buttonCallback},
     {"encoderCallback",     streamdeck_encoderCallback},
     {"screenCallback",      streamdeck_screenCallback},
     
     {"setButtonImage",      streamdeck_setButtonImage},
+    {"setFullScreenImage",  streamdeck_setFullScreenImage},
     {"setScreenImage",      streamdeck_setScreenImage},
     {"setButtonColor",      streamdeck_setButtonColor},
+    {"setFullScreenColor",  streamdeck_setFullScreenColor},
     {"setBrightness",       streamdeck_setBrightness},
     {"reset",               streamdeck_reset},
 

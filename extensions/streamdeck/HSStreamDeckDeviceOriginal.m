@@ -18,6 +18,8 @@
         self.keyColumns = 5;
         self.imageWidth = 72;
         self.imageHeight = 72;
+        self.imageWidthFullScreen = 480;
+        self.imageHeightFullScreen = 272;
         self.imageCodec = STREAMDECK_CODEC_BMP;
         self.imageFlipX = YES;
         self.imageFlipY = YES;

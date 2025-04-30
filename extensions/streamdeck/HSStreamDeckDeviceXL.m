@@ -18,6 +18,8 @@
         self.keyColumns = 8;
         self.imageWidth = 96;
         self.imageHeight = 96;
+        self.imageWidthFullScreen = 1024;
+        self.imageHeightFullScreen = 600;
         self.imageCodec = STREAMDECK_CODEC_JPEG;
         self.imageFlipX = YES;
         self.imageFlipY = YES;
@@ -44,6 +46,10 @@
 
 - (void)deviceWriteImage:(NSData *)data button:(int)button {
     [self deviceV2WriteImage:data button:button];
+}
+
+- (void)deviceWriteImageFullScreen:(NSData *)data {
+    [self deviceV2WriteImageFullScreen:data];
 }
 
 @end
