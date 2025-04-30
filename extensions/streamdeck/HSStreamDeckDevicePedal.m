@@ -41,6 +41,13 @@
 - (void)deviceWriteImage:(NSData *)data button:(int)button {
     // Do nothing
 }
+- (void)setImageFullScreen:(NSImage *)image {
+    // Do nothing
+}
+
+- (void)deviceWriteImageFullScreen:(NSData *)data {
+    // Do nothing
+}
 
 - (void)setLCDImage:(NSImage *)image forEncoder:(int)encoder {
     // Do nothing

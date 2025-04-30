@@ -46,6 +46,8 @@ typedef enum : NSUInteger {
 @property (nonatomic) int keyRows;
 @property (nonatomic) int imageWidth;
 @property (nonatomic) int imageHeight;
+@property (nonatomic) int imageWidthFullScreen;
+@property (nonatomic) int imageHeightFullScreen;
 
 @property (nonatomic, readonly, getter=getEncoderCount) int encoderCount;
 @property (nonatomic) int encoderColumns;
@@ -88,6 +90,7 @@ typedef enum : NSUInteger {
 - (IOReturn)deviceWrite:(NSData *)report;
 - (void)deviceWriteImage:(NSData *)data button:(int)button;
 - (void)deviceV2WriteImage:(NSData *)data button:(int)button;
+- (void)deviceV2WriteImageFullScreen:(NSData *)data;
 - (NSData *)deviceRead:(int)resultLength reportID:(CFIndex)reportID readOffset:(NSUInteger)readOffset;
 
 - (int)transformKeyIndex:(int)sourceKey;
@@ -106,6 +109,10 @@ typedef enum : NSUInteger {
 - (void)clearImage:(int)button;
 - (void)setColor:(NSColor*)color forButton:(int)button;
 - (void)setImage:(NSImage*)image forButton:(int)button;
+
+- (void)clearImageFullScreen;
+- (void)setColorFullScreen:(NSColor*)color;
+- (void)setImageFullScreen:(NSImage*)image;
 
 - (void)setLCDImage:(NSImage*)image forEncoder:(int)encoder;
 

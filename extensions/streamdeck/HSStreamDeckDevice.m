@@ -492,6 +492,137 @@
     }
 }
 
+- (void)clearImageFullScreen {
+    [self setColorFullScreen:[NSColor blackColor]];
+}
+
+- (void)setColorFullScreen:(NSColor *)color {
+    if (!self.isValid) {
+        return;
+    }
+
+    NSImage *image = [[NSImage alloc] initWithSize:NSMakeSize(self.imageWidthFullScreen, self.imageHeightFullScreen)];
+    [image lockFocus];
+    [color drawSwatchInRect:NSMakeRect(0, 0, self.imageWidthFullScreen, self.imageHeightFullScreen)];
+    [image unlockFocus];
+    [self setImageFullScreen:image];
+}
+
+- (void)setImageFullScreen:(NSImage *)image {
+    if (!self.isValid) {
+        return;
+    }
+
+    NSImage *renderImage;
+
+    // Unconditionally resize the image
+    NSImage *sourceImage = [image copy];
+    NSSize newSize = NSMakeSize(self.imageWidthFullScreen, self.imageHeightFullScreen);
+    renderImage = [[NSImage alloc] initWithSize: newSize];
+    [renderImage lockFocus];
+    [sourceImage setSize: newSize];
+    [[NSGraphicsContext currentContext] setImageInterpolation:NSImageInterpolationHigh];
+    [sourceImage drawAtPoint:NSZeroPoint fromRect:CGRectMake(0, 0, newSize.width, newSize.height) operation:NSCompositingOperationCopy fraction:1.0];
+    [renderImage unlockFocus];
+
+    if (![image isValid]) {
+        [LuaSkin logError:@"image is invalid"];
+    }
+    if (![renderImage isValid]) {
+        [LuaSkin logError:@"Invalid image passed to hs.streamdeck:setImage() (renderImage)"];
+    //    return;
+    }
+
+    // Both of these functions are no-ops if there are no rotations or flips required, so we'll call them unconditionally
+    renderImage = [renderImage imageRotated:self.imageAngle];
+    renderImage = [renderImage flipImage:self.imageFlipX vert:self.imageFlipY];
+
+    NSData *data = nil;
+
+    switch (self.imageCodec) {
+        case STREAMDECK_CODEC_BMP:
+            data = [renderImage bmpData];
+            break;
+
+        case STREAMDECK_CODEC_JPEG:
+            data = [renderImage jpegData];
+            break;
+
+        case STREAMDECK_CODEC_UNKNOWN:
+            [LuaSkin logError:@"Unknown image codec for hs.streamdeck device"];
+            break;
+    }
+
+    // Writing the image to hardware is a device-specific operation, so hand it off to our subclasses
+    [self deviceWriteImageFullScreen:data];
+
+}
+
+- (void)deviceWriteImageFullScreen:(NSData *)data {
+    NSException *exception = [NSException exceptionWithName:@"HSStreamDeckDeviceUnimplemented"
+                                                     reason:@"deviceWriteImage method not implemented"
+                                                   userInfo:nil];
+    [exception raise];
+}
+
+- (void)deviceV2WriteImageFullScreen:(NSData *)data {
+    uint8_t reportHeader[] = {0x02,  // Report ID
+                             0x08,   // Always 8
+                             0,      // Unused
+                             0x00,   // Final page bool
+                             0x00,   // Some kind of encoding of the length of the current page
+                             0x00,   // Some other kind of encoding of the current page length
+                             0x00,   // Some kind of encoding of the page number
+                             0x00    // Some other kind of encoding of the page number
+                            };
+
+    // The v2 Stream Decks needs images sent in slices no more than 1016 bytes + the report header
+    int maxPayloadLength = self.reportLength - self.reportHeaderLength;
+
+    int bytesRemaining = (int)data.length;
+    int bytesSent = 0;
+    int pageNumber = 0;
+    const uint8_t *imageBuf = data.bytes;
+
+    IOReturn result;
+
+    while (bytesRemaining > 0) {
+        int thisPageLength = MIN(bytesRemaining, maxPayloadLength);
+        bytesSent = pageNumber * maxPayloadLength;
+
+        // Set our current page number
+        reportHeader[6] = pageNumber & 0xFF;
+        reportHeader[7] = pageNumber >> 8;
+
+        // Set our current page length
+        reportHeader[4] = thisPageLength & 0xFF;
+        reportHeader[5] = thisPageLength >> 8;
+
+        // Set if we're the last page of data
+        if (bytesRemaining <= maxPayloadLength) reportHeader[3] = 1;
+
+        NSMutableData *report = [NSMutableData dataWithLength:self.reportLength];
+        [report replaceBytesInRange:NSMakeRange(0, self.reportHeaderLength)
+                          withBytes:reportHeader];
+        [report replaceBytesInRange:NSMakeRange(self.reportHeaderLength, thisPageLength)
+                          withBytes:imageBuf+bytesSent
+                             length:thisPageLength];
+
+        result = IOHIDDeviceSetReport(self.device,
+                                      kIOHIDReportTypeOutput,
+                                      reportHeader[0],
+                                      report.bytes,
+                                      (int)report.length);
+        if (result != kIOReturnSuccess) {
+            NSLog(@"WARNING: writing an image with hs.streamdeck encountered a failure on page %d: %d", pageNumber, result);
+        }
+
+        bytesRemaining = bytesRemaining - thisPageLength;
+        pageNumber++;
+    }
+}
+
+
 - (void)setLCDImage:(NSImage *)image forEncoder:(int)encoder {
     if (!self.isValid) {
         return;
