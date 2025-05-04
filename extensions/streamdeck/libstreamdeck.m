@@ -364,7 +364,7 @@ static int streamdeck_setButtonImage(lua_State *L) {
 /// Returns:
 ///  * The hs.streamdeck object
 ///
-///  Notes:
+/// Notes:
 ///  * Images are always stretched to fill the entire screen without preserving the aspect ratio. To apply different scaling consider using [hs.canvas](hs.canvas.html) and/or [hs.image:size()](hs.image.html#size).
 static int streamdeck_setFullScreenImage(lua_State *L) {
     LuaSkin *skin = [LuaSkin sharedWithState:L];
